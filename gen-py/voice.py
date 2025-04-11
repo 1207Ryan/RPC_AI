@@ -1,8 +1,10 @@
-from vosk import Model, KaldiRecognizer
+from vosk import Model, KaldiRecognizer, SetLogLevel
 import pyaudio
 import json
-from vosk import SetLogLevel
+
 SetLogLevel(-1)
+
+
 def VoiceRecognition():
     # 加载模型
     model = Model('VoiceModelSmall')

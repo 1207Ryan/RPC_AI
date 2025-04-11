@@ -1,0 +1,24 @@
+{
+  "user_id": 1,
+  "basic_info": {
+    "age": 20,
+    "gender": "male",
+    "region": "south"
+  },
+  "family_info": {
+    "family_members": 3,
+    "has_children": false,
+    "has_elderly": false,
+    "has_pet": false
+  },
+  "device_data": {
+    "work_schedule": "regular",
+    "cooking_habits": "medium",
+    "usage": {
+      "灯光": 1,
+      "空调": 1,
+      "浴霸": 1,
+      "摄像头": 1
+    }
+  }
+}

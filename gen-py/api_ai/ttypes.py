@@ -108,15 +108,17 @@ class FirstAIChatRequest(object):
      - input_text
      - language
      - timestamp
+     - uid
 
     """
     thrift_spec = None
 
 
-    def __init__(self, input_text = None, language = None, timestamp = None,):
+    def __init__(self, input_text = None, language = None, timestamp = None, uid = None,):
         self.input_text = input_text
         self.language = language
         self.timestamp = timestamp
+        self.uid = uid
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -140,6 +142,11 @@ class FirstAIChatRequest(object):
             elif fid == 3:
                 if ftype == TType.I64:
                     self.timestamp = iprot.readI64()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 4:
+                if ftype == TType.I64:
+                    self.uid = iprot.readI64()
                 else:
                     iprot.skip(ftype)
             else:
@@ -165,12 +172,18 @@ class FirstAIChatRequest(object):
             oprot.writeFieldBegin('timestamp', TType.I64, 3)
             oprot.writeI64(self.timestamp)
             oprot.writeFieldEnd()
+        if self.uid is not None:
+            oprot.writeFieldBegin('uid', TType.I64, 4)
+            oprot.writeI64(self.uid)
+            oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
 
     def validate(self):
         if self.input_text is None:
             raise TProtocolException(message='Required field input_text is unset!')
+        if self.uid is None:
+            raise TProtocolException(message='Required field uid is unset!')
         return
 
     def __repr__(self):
@@ -189,13 +202,15 @@ class FirstAIChatResponse(object):
     """
     Attributes:
      - scene
+     - needed_init
 
     """
     thrift_spec = None
 
 
-    def __init__(self, scene = None,):
+    def __init__(self, scene = None, needed_init = None,):
         self.scene = scene
+        self.needed_init = needed_init
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -209,6 +224,11 @@ class FirstAIChatResponse(object):
             if fid == 1:
                 if ftype == TType.STRING:
                     self.scene = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.BOOL:
+                    self.needed_init = iprot.readBool()
                 else:
                     iprot.skip(ftype)
             else:
@@ -226,10 +246,16 @@ class FirstAIChatResponse(object):
             oprot.writeFieldBegin('scene', TType.STRING, 1)
             oprot.writeString(self.scene.encode('utf-8') if sys.version_info[0] == 2 else self.scene)
             oprot.writeFieldEnd()
+        if self.needed_init is not None:
+            oprot.writeFieldBegin('needed_init', TType.BOOL, 2)
+            oprot.writeBool(self.needed_init)
+            oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
 
     def validate(self):
+        if self.needed_init is None:
+            raise TProtocolException(message='Required field needed_init is unset!')
         return
 
     def __repr__(self):
@@ -250,15 +276,17 @@ class AIChatRequest(object):
      - input_text
      - language
      - timestamp
+     - uid
 
     """
     thrift_spec = None
 
 
-    def __init__(self, input_text = None, language = None, timestamp = None,):
+    def __init__(self, input_text = None, language = None, timestamp = None, uid = None,):
         self.input_text = input_text
         self.language = language
         self.timestamp = timestamp
+        self.uid = uid
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -284,6 +312,11 @@ class AIChatRequest(object):
                     self.timestamp = iprot.readI64()
                 else:
                     iprot.skip(ftype)
+            elif fid == 4:
+                if ftype == TType.I64:
+                    self.uid = iprot.readI64()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -307,12 +340,199 @@ class AIChatRequest(object):
             oprot.writeFieldBegin('timestamp', TType.I64, 3)
             oprot.writeI64(self.timestamp)
             oprot.writeFieldEnd()
+        if self.uid is not None:
+            oprot.writeFieldBegin('uid', TType.I64, 4)
+            oprot.writeI64(self.uid)
+            oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
 
     def validate(self):
         if self.input_text is None:
             raise TProtocolException(message='Required field input_text is unset!')
+        if self.uid is None:
+            raise TProtocolException(message='Required field uid is unset!')
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+class ChatUserProfile(object):
+    """
+    Attributes:
+     - uid
+     - age
+     - gender
+     - region
+     - family_members
+     - has_children
+     - has_elderly
+     - has_pet
+     - work_schedule
+     - cooking_habits
+     - device_usage
+
+    """
+    thrift_spec = None
+
+
+    def __init__(self, uid = None, age = 20, gender = "male", region = "south", family_members = 1, has_children = False, has_elderly = False, has_pet = False, work_schedule = "regular", cooking_habits = "medium", device_usage = None,):
+        self.uid = uid
+        self.age = age
+        self.gender = gender
+        self.region = region
+        self.family_members = family_members
+        self.has_children = has_children
+        self.has_elderly = has_elderly
+        self.has_pet = has_pet
+        self.work_schedule = work_schedule
+        self.cooking_habits = cooking_habits
+        self.device_usage = device_usage
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I64:
+                    self.uid = iprot.readI64()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.I32:
+                    self.age = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.STRING:
+                    self.gender = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 4:
+                if ftype == TType.STRING:
+                    self.region = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 5:
+                if ftype == TType.I32:
+                    self.family_members = iprot.readI32()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 6:
+                if ftype == TType.BOOL:
+                    self.has_children = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 7:
+                if ftype == TType.BOOL:
+                    self.has_elderly = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 8:
+                if ftype == TType.BOOL:
+                    self.has_pet = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 9:
+                if ftype == TType.STRING:
+                    self.work_schedule = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 10:
+                if ftype == TType.STRING:
+                    self.cooking_habits = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 11:
+                if ftype == TType.MAP:
+                    self.device_usage = {}
+                    (_ktype1, _vtype2, _size0) = iprot.readMapBegin()
+                    for _i4 in range(_size0):
+                        _key5 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        _val6 = iprot.readI32()
+                        self.device_usage[_key5] = _val6
+                    iprot.readMapEnd()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        self.validate()
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('ChatUserProfile')
+        if self.uid is not None:
+            oprot.writeFieldBegin('uid', TType.I64, 1)
+            oprot.writeI64(self.uid)
+            oprot.writeFieldEnd()
+        if self.age is not None:
+            oprot.writeFieldBegin('age', TType.I32, 2)
+            oprot.writeI32(self.age)
+            oprot.writeFieldEnd()
+        if self.gender is not None:
+            oprot.writeFieldBegin('gender', TType.STRING, 3)
+            oprot.writeString(self.gender.encode('utf-8') if sys.version_info[0] == 2 else self.gender)
+            oprot.writeFieldEnd()
+        if self.region is not None:
+            oprot.writeFieldBegin('region', TType.STRING, 4)
+            oprot.writeString(self.region.encode('utf-8') if sys.version_info[0] == 2 else self.region)
+            oprot.writeFieldEnd()
+        if self.family_members is not None:
+            oprot.writeFieldBegin('family_members', TType.I32, 5)
+            oprot.writeI32(self.family_members)
+            oprot.writeFieldEnd()
+        if self.has_children is not None:
+            oprot.writeFieldBegin('has_children', TType.BOOL, 6)
+            oprot.writeBool(self.has_children)
+            oprot.writeFieldEnd()
+        if self.has_elderly is not None:
+            oprot.writeFieldBegin('has_elderly', TType.BOOL, 7)
+            oprot.writeBool(self.has_elderly)
+            oprot.writeFieldEnd()
+        if self.has_pet is not None:
+            oprot.writeFieldBegin('has_pet', TType.BOOL, 8)
+            oprot.writeBool(self.has_pet)
+            oprot.writeFieldEnd()
+        if self.work_schedule is not None:
+            oprot.writeFieldBegin('work_schedule', TType.STRING, 9)
+            oprot.writeString(self.work_schedule.encode('utf-8') if sys.version_info[0] == 2 else self.work_schedule)
+            oprot.writeFieldEnd()
+        if self.cooking_habits is not None:
+            oprot.writeFieldBegin('cooking_habits', TType.STRING, 10)
+            oprot.writeString(self.cooking_habits.encode('utf-8') if sys.version_info[0] == 2 else self.cooking_habits)
+            oprot.writeFieldEnd()
+        if self.device_usage is not None:
+            oprot.writeFieldBegin('device_usage', TType.MAP, 11)
+            oprot.writeMapBegin(TType.STRING, TType.I32, len(self.device_usage))
+            for kiter7, viter8 in self.device_usage.items():
+                oprot.writeString(kiter7.encode('utf-8') if sys.version_info[0] == 2 else kiter7)
+                oprot.writeI32(viter8)
+            oprot.writeMapEnd()
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        if self.uid is None:
+            raise TProtocolException(message='Required field uid is unset!')
         return
 
     def __repr__(self):
@@ -360,11 +580,11 @@ class AIChatResponse(object):
             elif fid == 2:
                 if ftype == TType.LIST:
                     self.scenes = []
-                    (_etype3, _size0) = iprot.readListBegin()
-                    for _i4 in range(_size0):
-                        _elem5 = SceneInfo()
-                        _elem5.read(iprot)
-                        self.scenes.append(_elem5)
+                    (_etype12, _size9) = iprot.readListBegin()
+                    for _i13 in range(_size9):
+                        _elem14 = SceneInfo()
+                        _elem14.read(iprot)
+                        self.scenes.append(_elem14)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -391,8 +611,8 @@ class AIChatResponse(object):
         if self.scenes is not None:
             oprot.writeFieldBegin('scenes', TType.LIST, 2)
             oprot.writeListBegin(TType.STRUCT, len(self.scenes))
-            for iter6 in self.scenes:
-                iter6.write(oprot)
+            for iter15 in self.scenes:
+                iter15.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.assemble_layout is not None:
@@ -434,11 +654,13 @@ FirstAIChatRequest.thrift_spec = (
     (1, TType.STRING, 'input_text', 'UTF8', None, ),  # 1
     (2, TType.STRING, 'language', 'UTF8', None, ),  # 2
     (3, TType.I64, 'timestamp', None, None, ),  # 3
+    (4, TType.I64, 'uid', None, None, ),  # 4
 )
 all_structs.append(FirstAIChatResponse)
 FirstAIChatResponse.thrift_spec = (
     None,  # 0
     (1, TType.STRING, 'scene', 'UTF8', None, ),  # 1
+    (2, TType.BOOL, 'needed_init', None, None, ),  # 2
 )
 all_structs.append(AIChatRequest)
 AIChatRequest.thrift_spec = (
@@ -446,6 +668,22 @@ AIChatRequest.thrift_spec = (
     (1, TType.STRING, 'input_text', 'UTF8', None, ),  # 1
     (2, TType.STRING, 'language', 'UTF8', None, ),  # 2
     (3, TType.I64, 'timestamp', None, None, ),  # 3
+    (4, TType.I64, 'uid', None, None, ),  # 4
+)
+all_structs.append(ChatUserProfile)
+ChatUserProfile.thrift_spec = (
+    None,  # 0
+    (1, TType.I64, 'uid', None, None, ),  # 1
+    (2, TType.I32, 'age', None, 20, ),  # 2
+    (3, TType.STRING, 'gender', 'UTF8', "male", ),  # 3
+    (4, TType.STRING, 'region', 'UTF8', "south", ),  # 4
+    (5, TType.I32, 'family_members', None, 1, ),  # 5
+    (6, TType.BOOL, 'has_children', None, False, ),  # 6
+    (7, TType.BOOL, 'has_elderly', None, False, ),  # 7
+    (8, TType.BOOL, 'has_pet', None, False, ),  # 8
+    (9, TType.STRING, 'work_schedule', 'UTF8', "regular", ),  # 9
+    (10, TType.STRING, 'cooking_habits', 'UTF8', "medium", ),  # 10
+    (11, TType.MAP, 'device_usage', (TType.STRING, 'UTF8', TType.I32, None, False), None, ),  # 11
 )
 all_structs.append(AIChatResponse)
 AIChatResponse.thrift_spec = (

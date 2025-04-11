@@ -9,21 +9,44 @@ struct SceneInfo {
 struct FirstAIChatRequest{
     1: required string input_text,        // 用户输入的文字（无论是语音还是文本，转为文字）
     2: optional string language,          // 可选，语言（如 zh-CN, en-US）
-    3: optional i64 timestamp             // 可选，时间戳（用于日志/追踪）
+    3: optional i64 timestamp,             // 可选，时间戳（用于日志/追踪）
+    4: required i64 uid,            // 用户ID
 }
 
 
 struct FirstAIChatResponse{
-    1:optional string scene // 返回“智能家居”
+    1:optional string scene, // 返回“智能家居”
+    2:required bool needed_init,
 }
 
 
 struct AIChatRequest {
     1: required string input_text,        // 用户输入的文字（无论是语音还是文本，转为文字）
     2: optional string language,          // 可选，语言（如 zh-CN, en-US）
-    3: optional i64 timestamp             // 可选，时间戳（用于日志/追踪）
+    3: optional i64 timestamp,             // 可选，时间戳（用于日志/追踪）
+    4: required i64 uid,            // 用户ID
 }
 
+struct ChatUserProfile {
+    // Basic Information
+    1: required i64 uid,
+    2: optional i32 age = 20,
+    3: optional string gender = "male",
+    4: optional string region = "south",
+
+    // Family Information
+    5: optional i32 family_members = 1,
+    6: optional bool has_children = false,
+    7: optional bool has_elderly = false,
+    8: optional bool has_pet = false,
+
+    // Lifestyle Information
+    9: optional string work_schedule = "regular",  // "regular", "night_shift", "flexible"
+    10: optional string cooking_habits = "medium", // "rare", "medium", "frequent"
+
+    // Device Usage
+    11: optional map<string, i32> device_usage,
+}
 
 struct AIChatResponse {
     1: required string reply_text,                // 系统基础回复，例如“好的，请稍等”
@@ -38,4 +61,6 @@ service ChatService {
     AIChatResponse AIChat(1: AIChatRequest req)(api.post="api/v1/ai/chat/default")
     // 实际的在智能家居中的聊天功能
     FirstAIChatResponse FirstAIChat(1: FirstAIChatRequest req)(api.post="api/v1/ai/chat/first")
+    // 初始化用户文件
+    string InitUserProfile(1: ChatUserProfile up)
 }
