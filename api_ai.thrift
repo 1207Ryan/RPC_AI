@@ -11,6 +11,8 @@ struct FirstAIChatRequest{
     2: optional string language,          // 可选，语言（如 zh-CN, en-US）
     3: optional i64 timestamp,             // 可选，时间戳（用于日志/追踪）
     4: required i64 uid,            // 用户ID
+    5: required bool use_voicefile,       //是否使用语音文件
+    6: optional string voicefile_name,      //语音文件名称
 }
 
 
@@ -25,6 +27,8 @@ struct AIChatRequest {
     2: optional string language,          // 可选，语言（如 zh-CN, en-US）
     3: optional i64 timestamp,             // 可选，时间戳（用于日志/追踪）
     4: required i64 uid,            // 用户ID
+    5: required bool use_voicefile,       //是否使用语音文件
+    6: optional string voicefile_name,      //语音文件名称
 }
 
 struct ChatUserProfile {

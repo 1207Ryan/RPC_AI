@@ -1,17 +1,14 @@
-import os
-import json
 import time
 from datetime import datetime
 from typing import Dict, List, Optional, Union, Any
-from dataclasses import field
-import requests
-from prompts import *
-from sparkai.llm.llm import ChatSparkLLM, ChunkPrintHandler
-from sparkai.core.messages import ChatMessage
-from volcenginesdkarkruntime import Ark
-from voice import VoiceRecognition
-from sklearn.preprocessing import MinMaxScaler
 import numpy as np
+import requests
+from sparkai.core.messages import ChatMessage
+from sparkai.llm.llm import ChatSparkLLM, ChunkPrintHandler
+from volcenginesdkarkruntime import Ark
+from prompts import *
+from voice import VoiceRecognition
+from voicefile import *
 
 
 class DialogHistory:

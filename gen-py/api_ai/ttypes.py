@@ -109,16 +109,20 @@ class FirstAIChatRequest(object):
      - language
      - timestamp
      - uid
+     - use_voicefile
+     - voicefile_name
 
     """
     thrift_spec = None
 
 
-    def __init__(self, input_text = None, language = None, timestamp = None, uid = None,):
+    def __init__(self, input_text = None, language = None, timestamp = None, uid = None, use_voicefile = None, voicefile_name = None,):
         self.input_text = input_text
         self.language = language
         self.timestamp = timestamp
         self.uid = uid
+        self.use_voicefile = use_voicefile
+        self.voicefile_name = voicefile_name
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -149,6 +153,16 @@ class FirstAIChatRequest(object):
                     self.uid = iprot.readI64()
                 else:
                     iprot.skip(ftype)
+            elif fid == 5:
+                if ftype == TType.BOOL:
+                    self.use_voicefile = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 6:
+                if ftype == TType.STRING:
+                    self.voicefile_name = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -176,6 +190,14 @@ class FirstAIChatRequest(object):
             oprot.writeFieldBegin('uid', TType.I64, 4)
             oprot.writeI64(self.uid)
             oprot.writeFieldEnd()
+        if self.use_voicefile is not None:
+            oprot.writeFieldBegin('use_voicefile', TType.BOOL, 5)
+            oprot.writeBool(self.use_voicefile)
+            oprot.writeFieldEnd()
+        if self.voicefile_name is not None:
+            oprot.writeFieldBegin('voicefile_name', TType.STRING, 6)
+            oprot.writeString(self.voicefile_name.encode('utf-8') if sys.version_info[0] == 2 else self.voicefile_name)
+            oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
 
@@ -184,6 +206,8 @@ class FirstAIChatRequest(object):
             raise TProtocolException(message='Required field input_text is unset!')
         if self.uid is None:
             raise TProtocolException(message='Required field uid is unset!')
+        if self.use_voicefile is None:
+            raise TProtocolException(message='Required field use_voicefile is unset!')
         return
 
     def __repr__(self):
@@ -277,16 +301,20 @@ class AIChatRequest(object):
      - language
      - timestamp
      - uid
+     - use_voicefile
+     - voicefile_name
 
     """
     thrift_spec = None
 
 
-    def __init__(self, input_text = None, language = None, timestamp = None, uid = None,):
+    def __init__(self, input_text = None, language = None, timestamp = None, uid = None, use_voicefile = None, voicefile_name = None,):
         self.input_text = input_text
         self.language = language
         self.timestamp = timestamp
         self.uid = uid
+        self.use_voicefile = use_voicefile
+        self.voicefile_name = voicefile_name
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -317,6 +345,16 @@ class AIChatRequest(object):
                     self.uid = iprot.readI64()
                 else:
                     iprot.skip(ftype)
+            elif fid == 5:
+                if ftype == TType.BOOL:
+                    self.use_voicefile = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 6:
+                if ftype == TType.STRING:
+                    self.voicefile_name = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
             iprot.readFieldEnd()
@@ -344,6 +382,14 @@ class AIChatRequest(object):
             oprot.writeFieldBegin('uid', TType.I64, 4)
             oprot.writeI64(self.uid)
             oprot.writeFieldEnd()
+        if self.use_voicefile is not None:
+            oprot.writeFieldBegin('use_voicefile', TType.BOOL, 5)
+            oprot.writeBool(self.use_voicefile)
+            oprot.writeFieldEnd()
+        if self.voicefile_name is not None:
+            oprot.writeFieldBegin('voicefile_name', TType.STRING, 6)
+            oprot.writeString(self.voicefile_name.encode('utf-8') if sys.version_info[0] == 2 else self.voicefile_name)
+            oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
 
@@ -352,6 +398,8 @@ class AIChatRequest(object):
             raise TProtocolException(message='Required field input_text is unset!')
         if self.uid is None:
             raise TProtocolException(message='Required field uid is unset!')
+        if self.use_voicefile is None:
+            raise TProtocolException(message='Required field use_voicefile is unset!')
         return
 
     def __repr__(self):
@@ -655,6 +703,8 @@ FirstAIChatRequest.thrift_spec = (
     (2, TType.STRING, 'language', 'UTF8', None, ),  # 2
     (3, TType.I64, 'timestamp', None, None, ),  # 3
     (4, TType.I64, 'uid', None, None, ),  # 4
+    (5, TType.BOOL, 'use_voicefile', None, None, ),  # 5
+    (6, TType.STRING, 'voicefile_name', 'UTF8', None, ),  # 6
 )
 all_structs.append(FirstAIChatResponse)
 FirstAIChatResponse.thrift_spec = (
@@ -669,6 +719,8 @@ AIChatRequest.thrift_spec = (
     (2, TType.STRING, 'language', 'UTF8', None, ),  # 2
     (3, TType.I64, 'timestamp', None, None, ),  # 3
     (4, TType.I64, 'uid', None, None, ),  # 4
+    (5, TType.BOOL, 'use_voicefile', None, None, ),  # 5
+    (6, TType.STRING, 'voicefile_name', 'UTF8', None, ),  # 6
 )
 all_structs.append(ChatUserProfile)
 ChatUserProfile.thrift_spec = (

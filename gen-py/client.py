@@ -1,12 +1,11 @@
 import sys
-import json
 import time
+from thrift.protocol import TBinaryProtocol
 from thrift.transport import TSocket
 from thrift.transport import TTransport
-from thrift.protocol import TBinaryProtocol
 from api_ai import ChatService
 from api_ai.ttypes import AIChatRequest, FirstAIChatRequest, ChatUserProfile
-from voice import VoiceRecognition
+from voicefile import smart_split
 
 
 def connect_to_server(host='localhost', port=9090):
@@ -39,11 +38,11 @@ def test_first_chat(client, uid: int):
         language="zh-CN",
         timestamp=int(time.time()),
         uid=uid,
+        use_voicefile=False,
     )
     try:
         response = client.FirstAIChat(request)
         print(f"响应: {response.scene}")
-        print(response.needed_init)
         if response.needed_init is True:
             print(client.InitUserProfile(initialize_user_profile(uid)))
 
@@ -56,16 +55,18 @@ def test_first_chat(client, uid: int):
 def test_ai_chat(client, text, uid: int):
     """测试常规AI聊天请求"""
     print(f"\n=== 测试请求: {text} ===")
-    if "语音识别" in text:
-        text = VoiceRecognition()
-    # elif "语音文件" in text:
-    #     text = VoiceFileRecognition()
     request = AIChatRequest(
         input_text=text,
         language="zh-CN",
         timestamp=int(time.time()),
         uid=uid,
+        use_voicefile=False,
     )
+
+    if "语音识别" in text:
+        request.use_voicefile = True
+        request.voicefile_name = smart_split(text)[2]
+
     try:
         response = client.AIChat(request)
         print(f"基础回复: {response.reply_text}")

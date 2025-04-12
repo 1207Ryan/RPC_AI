@@ -3,8 +3,7 @@ from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 from thrift.server import TServer
 from api_ai import ChatService
-from api_ai.ttypes import AIChatResponse, SceneInfo, FirstAIChatResponse, ChatUserProfile
-import json
+from api_ai.ttypes import AIChatResponse, SceneInfo, FirstAIChatResponse
 import logging
 from main import *  # Import your existing AI processing functions
 
@@ -41,6 +40,9 @@ class ChatServiceHandler:
         except:
             self.user_profile = UserProfile(req.uid)  # Default profile
             logger.info("用户文件获取失败，使用默认文件")
+
+        if req.use_voicefile:
+            req.input_text = VoiceFileRecognition(req.voicefile_name)
 
         try:
             result = process_input(req.input_text, self.user_profile)
