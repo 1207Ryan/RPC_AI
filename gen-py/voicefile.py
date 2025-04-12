@@ -69,7 +69,7 @@ def VoiceFileRecognition(wav_file):
 
 
 if __name__ == '__main__':
-    content = smart_split("识别语音文件我好冷")
+    content = smart_split("使用语音识别我好冷")
     voicefile = find_audio(content[2], "./")
     result = VoiceFileRecognition(voicefile)
     print(result)
