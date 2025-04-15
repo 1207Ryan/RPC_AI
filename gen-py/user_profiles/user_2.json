@@ -1,0 +1,20 @@
+{
+  "user_id": 2,
+  "basic_info": {
+    "age": 35,
+    "gender": "female",
+    "region": "north"
+  },
+  "family_info": {
+    "family_members": 7,
+    "has_children": false,
+    "has_elderly": false,
+    "has_pet": false
+  },
+  "device_data": {
+    "work_schedule": "regular",
+    "cooking_habits": "medium",
+    "usage": {
+    }
+  }
+}
