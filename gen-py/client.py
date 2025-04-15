@@ -67,6 +67,10 @@ def test_ai_chat(client, text, uid: int):
         request.use_voicefile = True
         request.voicefile_name = smart_split(text)[2]
 
+    if "修改用户画像" in text:
+        print(client.InitUserProfile(initialize_user_profile(uid)))
+        return True
+
     try:
         response = client.AIChat(request)
         print(f"基础回复: {response.reply_text}")
@@ -148,17 +152,17 @@ def main():
         if not test_first_chat(client, uid):
             return
 
-        # 测试预设用例
-        test_cases = [
-            "打开客厅的灯",
-            "把空调调到26度",
-            "浴室太冷了",
-            "我不在家的时候请打开监控"
-        ]
+        # # 测试预设用例
+        # test_cases = [
+        #     "打开客厅的灯",
+        #     "把空调调到26度",
+        #     "浴室太冷了",
+        #     "我不在家的时候请打开监控"
+        # ]
 
-        for case in test_cases:
-            if not test_ai_chat(client, case, uid):
-                break
+        # for case in test_cases:
+        #     if not test_ai_chat(client, case, uid):
+        #         break
 
         # 交互式测试
         interactive_test(client, uid)

@@ -9,6 +9,9 @@ from volcenginesdkarkruntime import Ark
 from prompts import *
 from voice import VoiceRecognition
 from voicefile import *
+import os
+import json
+from collections import defaultdict
 
 
 class DialogHistory:
@@ -69,7 +72,8 @@ class UserProfile:
                  region: Optional[str] = "south", family_members: Optional[int] = 1,
                  has_children: Optional[bool] = False, has_elderly: Optional[bool] = False,
                  has_pet: Optional[bool] = False, work_schedule: Optional[str] = "regular",
-                 cooking_habits: Optional[str] = "medium", device_usage: Dict[str, int] = None):
+                 cooking_habits: Optional[str] = "medium", device_usage: Dict[str, int] = None,
+                 device_sequences: Dict[str, List[str]] = None):
         # 基础信息
         self.user_id = user_id
         self.age = age
@@ -84,6 +88,96 @@ class UserProfile:
         self.work_schedule = work_schedule if work_schedule is not None else "regular"  # "regular", "night_shift", "flexible"
         self.cooking_habits = cooking_habits if cooking_habits is not None else "medium"  # "rare", "medium", "frequent"
         self.device_usage = device_usage if device_usage is not None else {}
+        # 设备使用序列（用于预测）
+        self.device_sequences = device_sequences if device_sequences is not None else defaultdict(list)
+        self.markov_model = defaultdict(lambda: defaultdict(int))  # 马尔可夫转移矩阵
+        self._build_markov_model()  # 初始化时构建模型
+
+    def _build_markov_model(self):
+        """基于历史序列构建马尔可夫转移矩阵"""
+        for seq in self.device_sequences.values():
+            for i in range(len(seq) - 1):
+                current = seq[i]
+                next_dev = seq[i + 1]
+                self.markov_model[current][next_dev] += 1
+
+    def _get_markov_prediction(self, current_device: str, top_n: int = 3) -> List[str]:
+        """
+        马尔可夫链核心预测逻辑
+        :param current_device: 当前设备名称
+        :param top_n: 返回前N个预测结果
+        :return: 预测的设备列表（可能为空）
+        """
+        if not current_device or current_device not in self.markov_model:
+            return []
+
+        # 获取转移概率并排序
+        next_devices = self.markov_model[current_device]
+        sorted_devices = sorted(
+            next_devices.items(),
+            key=lambda x: -x[1]  # 按出现频率降序
+        )
+
+        # 返回top_n个设备（排除当前设备）
+        return [dev for dev, count in sorted_devices if dev != current_device][:top_n]
+
+    def predict_next_devices(self, current_device: str = None) -> List[str]:
+        """改进后的预测方法（优先级：场景 > 马尔可夫 > 近期模式 > 通用推荐）"""
+        predictions = []
+
+        # 1. 场景优先预测
+        if history.current_scene != "默认场景":
+            scene_key = f"scene_{history.current_scene}"
+            scene_sequence = self.device_sequences.get(scene_key, [])
+            if scene_sequence:
+                scene_devices = [d for d in scene_sequence if d != current_device]
+                predictions.extend(list(set(scene_devices))[:3])
+
+        # 2. 马尔可夫链预测（当有当前设备时）
+        if not predictions and current_device:
+            markov_pred = self._get_markov_prediction(current_device, top_n=2)
+            predictions.extend(markov_pred)
+
+        # 3. 近期使用模式（原逻辑）
+        if not predictions:
+            recent_sequence = self.device_sequences.get("recent", [])
+            if len(recent_sequence) >= 2:
+                last_two = tuple(recent_sequence[-2:])
+                possible_next = []
+                for seq in self.device_sequences.values():
+                    for i in range(len(seq) - 2):
+                        if tuple(seq[i:i + 2]) == last_two and seq[i + 2] != current_device:
+                            possible_next.append(seq[i + 2])
+                if possible_next:
+                    from collections import Counter
+                    predictions.extend([item[0] for item in Counter(possible_next).most_common(2)])
+
+        # 4. 通用推荐（原TOPSIS逻辑）
+        if not predictions:
+            all_devices = list(self.device_usage.keys())
+            if all_devices:
+                recommended = recommend_devices(self, [[d] for d in all_devices])
+                predictions.extend([d for d in recommended if d != current_device][:2])
+
+        return list(set(predictions))[:3]  # 去重并限制数量
+
+    def record_device_sequence(self, device_name: str):
+        """增强的记录方法（自动更新马尔可夫模型）"""
+        # 原有记录逻辑
+        if len(self.device_sequences["recent"]) >= 5:
+            self.device_sequences["recent"].pop(0)
+        self.device_sequences["recent"].append(device_name)
+
+        if history.current_scene != "默认场景":
+            scene_key = f"scene_{history.current_scene}"
+            if len(self.device_sequences[scene_key]) >= 3:
+                self.device_sequences[scene_key].pop(0)
+            self.device_sequences[scene_key].append(device_name)
+
+        # 实时更新马尔可夫模型（仅更新最近两个状态）
+        if len(self.device_sequences["recent"]) >= 2:
+            prev_device = self.device_sequences["recent"][-2]
+            self.markov_model[prev_device][device_name] += 1
 
     def record_device_usage(self, device_name: str):
         """记录设备使用次数"""
@@ -93,9 +187,11 @@ class UserProfile:
         for dev in device:
             if isinstance(dev, str):
                 self.record_device_usage(dev)
+                self.record_device_sequence(dev)
             elif isinstance(dev, list):
                 for d in dev:
                     self.record_device_usage(d)
+                    self.record_device_sequence(d)
 
         self.save_to_file(f"user_profiles/user_{self.user_id}.json")  # 修改为按用户ID保存
 
@@ -121,6 +217,7 @@ class UserProfile:
                 "work_schedule": self.work_schedule,
                 "cooking_habits": self.cooking_habits,
                 "usage": self.device_usage,
+                "sequences": self.device_sequences
             }
         }
         with open(filepath, 'w', encoding='utf-8') as f:
@@ -143,7 +240,8 @@ class UserProfile:
                     has_pet=data["family_info"].get("has_pet", False),
                     work_schedule=data["family_info"].get("work_schedule", None),
                     cooking_habits=data["family_info"].get("cooking_habits", None),
-                    device_usage=data["device_data"].get("usage", {})
+                    device_usage=data["device_data"].get("usage", {}),
+                    device_sequences=data["device_data"].get("sequences", defaultdict(list))
                 )
         except (FileNotFoundError, json.JSONDecodeError, KeyError):
             return cls(user_id=0)  # 返回默认配置
@@ -395,7 +493,7 @@ def get_device(user_input: str, user_profile: UserProfile) -> list[str] | str:
     matched_devices = match_keyword(user_input)
     # print(matched_devices)
     # 场景敏感的设备过滤
-    if matched_devices and current_scene:
+    if matched_devices and current_scene != "默认场景":
         current_scene_devices = SCENE_DEVICE_MAP.get(current_scene, [])
         filtered_devices = []
         for device in matched_devices:
@@ -413,7 +511,7 @@ def get_device(user_input: str, user_profile: UserProfile) -> list[str] | str:
             history.force_exit_scene()
 
     # print(matched_devices)
-    if not current_scene:
+    if not current_scene or current_scene == "默认场景":
         matched_devices = match_keyword(user_input)
         # print(matched_devices)
         # 根据时间和用户画像选择最匹配的电器
@@ -462,11 +560,18 @@ def process_input(user_input: str, user_profile: UserProfile):
     device = get_device(user_input, user_profile)
     if "未知设备" in device:
         return device
+
     history.add(user_input, device)
-
     user_profile.record_device(device)
-
     return device
+
+
+def predict_next_devices(device, user_profile: UserProfile) -> list[str]:
+    # 预测下一步可能需要的设备
+    current_device = device[0] if isinstance(device, list) else device
+    predicted_devices = user_profile.predict_next_devices(current_device)
+    if predicted_devices:
+        return predicted_devices
 
 
 def get_user_profile(user_id: int) -> UserProfile:
@@ -536,7 +641,8 @@ def initialize_user_profile(user_id: int) -> UserProfile:
         has_pet=has_pet,
         work_schedule=work_schedule,
         cooking_habits=cooking_habits,
-        device_usage={}  # Start with empty device usage
+        device_usage={},  # Start with empty device usage
+        device_sequences=defaultdict(list)  # Start with empty sequences
     )
 
     # Save the profile
@@ -570,11 +676,13 @@ def main():
             result = process_input(user_input, user_profile)
             if result:
                 print(f"需要操作的设备：{result}")
+                print("接下来您可能需要：" + predict_next_devices(result, user_profile)[0])
         elif choice == "2":
             user_input = VoiceRecognition()
             result = process_input(user_input, user_profile)
             if result:
                 print(f"需要操作的设备：{result}")
+                print("接下来您可能需要：" + predict_next_devices(result, user_profile)[0])
         elif choice == "3":
             user_profile = initialize_user_profile(user_id)
         elif choice == "4":

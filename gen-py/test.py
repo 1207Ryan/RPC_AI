@@ -55,3 +55,26 @@ print(json.dumps(simplified_data, indent=2, ensure_ascii=False))
 # 也可以自定义默认值
 custom_defaults = {"p-": "8", "px-": "4"}  # 更大的默认间距
 custom_simplified = simplify_spacing_rules(input_data, custom_defaults)
+
+# import time
+# from datetime import datetime
+# from typing import Dict, List, Optional, Union, Any
+# import numpy as np
+# import requests
+# from sparkai.core.messages import ChatMessage
+# from sparkai.llm.llm import ChatSparkLLM, ChunkPrintHandler
+# from volcenginesdkarkruntime import Ark
+# from vosk import Model, KaldiRecognizer, SetLogLevel
+# import pyaudio
+# import json
+# import re
+# import wave
+# import json
+# import glob
+# import os
+# import sys
+# from thrift.protocol import TBinaryProtocol
+# from thrift.transport import TSocket
+# from thrift.transport import TTransport
+# from thrift.server import TServer
+# import logging

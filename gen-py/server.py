@@ -55,17 +55,46 @@ class ChatServiceHandler:
 
         # 确保结果转为列表
         result_list = [result] if not isinstance(result, list) else result
+        # 存储已处理的设备，避免重复
+        processed_components = set()
+        # 存储最终场景（去重后的结果）
+        final_scenes = []
 
-        scenes = []
         for device in result_list:
-            scene = SceneInfo()
-            # 确保设置所有required字段
-            scene.scene_name = history.current_scene
-            scene.matched_component = str(device) if device else "无匹配设备"
-            scene.layout_fragment = "default_layout_fragment"
-            scenes.append(scene)
+            device_str = str(device) if device else "无匹配设备"
+            # 如果设备未处理过，则添加到 final_scenes
+            if device_str not in processed_components:
+                processed_components.add(device_str)
 
-        response.scenes = scenes
+                scene = SceneInfo()
+                # 确保设置所有required字段
+                scene.scene_name = history.current_scene
+                scene.matched_component = str(device) if device else "无匹配设备"
+                scene.layout_fragment = "default_layout_fragment"
+                final_scenes.append(scene)
+
+        for scene in final_scenes.copy():  # 使用 copy() 避免迭代时修改
+            current_device = scene.matched_component
+
+            # 获取预测的下一个设备（如果是列表，只取第一个）
+            predicted_devices = predict_next_devices(current_device, self.user_profile)
+            if not predicted_devices:
+                continue
+
+            for predicted_device in predicted_devices:
+                predicted_device_str = str(predicted_device)
+
+                # 如果预测的设备未出现过，则添加新场景
+                if predicted_device_str not in processed_components:
+                    processed_components.add(predicted_device_str)
+
+                    new_scene = SceneInfo()
+                    new_scene.scene_name = scene.scene_name
+                    new_scene.matched_component = predicted_device_str
+                    new_scene.layout_fragment = "default_layout_fragment"
+                    final_scenes.append(new_scene)
+
+        response.scenes = final_scenes
         response.assemble_layout = "default_assemble_layout"
 
         return response

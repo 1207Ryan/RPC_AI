@@ -1,12 +1,12 @@
 {
-  "user_id": 1,
+  "user_id": 2,
   "basic_info": {
-    "age": 20,
-    "gender": "male",
-    "region": "south"
+    "age": 35,
+    "gender": "female",
+    "region": "north"
   },
   "family_info": {
-    "family_members": 3,
+    "family_members": 7,
     "has_children": false,
     "has_elderly": false,
     "has_pet": false
@@ -15,12 +15,6 @@
     "work_schedule": "regular",
     "cooking_habits": "medium",
     "usage": {
-      "灯光": 3,
-      "空调": 7,
-      "浴霸": 3,
-      "摄像头": 3,
-      "暖气": 4,
-      "电热毯": 4
     }
   }
 }
