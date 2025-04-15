@@ -4,7 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5261533e-8c6c-4003-86e0-273e6568956a" name="更改" comment="使用马尔科夫链进行预测" />
+    <list default="true" id="5261533e-8c6c-4003-86e0-273e6568956a" name="更改" comment="使用马尔科夫链进行预测">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gen-py/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/gen-py/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gen-py/user_profiles/user_1.json" beforeDir="false" afterPath="$PROJECT_DIR$/gen-py/user_profiles/user_1.json" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -112,7 +116,9 @@
       <workItem from="1744607266230" duration="10132000" />
       <workItem from="1744630182703" duration="3055000" />
       <workItem from="1744678740372" duration="4814000" />
-      <workItem from="1744700093225" duration="991000" />
+      <workItem from="1744700093225" duration="1127000" />
+      <workItem from="1744725100927" duration="642000" />
+      <workItem from="1744725780191" duration="46000" />
     </task>
     <task id="LOCAL-00001" summary="增加uid">
       <option name="closed" value="true" />
@@ -178,7 +184,31 @@
       <option name="project" value="LOCAL" />
       <updated>1744701061992</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="使用马尔科夫链进行预测">
+      <option name="closed" value="true" />
+      <created>1744701317797</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1744701317797</updated>
+    </task>
+    <task id="LOCAL-00010" summary="使用马尔科夫链进行预测">
+      <option name="closed" value="true" />
+      <created>1744701327549</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1744701327549</updated>
+    </task>
+    <task id="LOCAL-00011" summary="使用马尔科夫链进行预测">
+      <option name="closed" value="true" />
+      <created>1744701399754</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1744701399754</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -198,7 +228,7 @@
     <SUITE FILE_PATH="coverage/rpc_ai$.coverage" NAME=" 覆盖结果" MODIFIED="1744215123438" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/gen-py" />
     <SUITE FILE_PATH="coverage/rpc_ai$server.coverage" NAME="server 覆盖结果" MODIFIED="1744215112791" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/gen-py" />
     <SUITE FILE_PATH="coverage/rpc_ai$voice.coverage" NAME="voice 覆盖结果" MODIFIED="1744359122487" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/gen-py" />
-    <SUITE FILE_PATH="coverage/rpc_ai$main.coverage" NAME="main 覆盖结果" MODIFIED="1744622627504" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/gen-py" />
+    <SUITE FILE_PATH="coverage/rpc_ai$main.coverage" NAME="main 覆盖结果" MODIFIED="1744725724066" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$USER_HOME$/Desktop/源代码" />
     <SUITE FILE_PATH="coverage/rpc_ai$test.coverage" NAME="test 覆盖结果" MODIFIED="1744430658166" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/gen-py" />
     <SUITE FILE_PATH="coverage/rpc_ai$voicefile.coverage" NAME="voicefile 覆盖结果" MODIFIED="1744436797782" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/gen-py" />
   </component>

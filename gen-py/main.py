@@ -3,9 +3,6 @@ from datetime import datetime
 from typing import Dict, List, Optional, Union, Any
 import numpy as np
 import requests
-from sparkai.core.messages import ChatMessage
-from sparkai.llm.llm import ChatSparkLLM, ChunkPrintHandler
-from volcenginesdkarkruntime import Ark
 from prompts import *
 from voice import VoiceRecognition
 from voicefile import *
@@ -92,6 +89,8 @@ class UserProfile:
         self.device_sequences = device_sequences if device_sequences is not None else defaultdict(list)
         self.markov_model = defaultdict(lambda: defaultdict(int))  # 马尔可夫转移矩阵
         self._build_markov_model()  # 初始化时构建模型
+        if "recent" not in self.device_sequences:
+            self.device_sequences["recent"] = []
 
     def _build_markov_model(self):
         """基于历史序列构建马尔可夫转移矩阵"""
@@ -163,6 +162,8 @@ class UserProfile:
 
     def record_device_sequence(self, device_name: str):
         """增强的记录方法（自动更新马尔可夫模型）"""
+        if "recent" not in self.device_sequences:
+            self.device_sequences["recent"] = []
         # 原有记录逻辑
         if len(self.device_sequences["recent"]) >= 5:
             self.device_sequences["recent"].pop(0)
@@ -415,65 +416,6 @@ def chat_qianfan(content: str) -> str:
     return response.json()['result']
 
 
-def chat_spark(content: str) -> str:
-    """与讯飞星火AI聊天并获取响应"""
-    spark = ChatSparkLLM(
-        spark_api_url='wss://spark-api.xf-yun.com/v1.1/chat',
-        spark_app_id='54f0b31e',
-        spark_api_key=os.environ.get("SPARK_API_KEY"),
-        spark_api_secret=os.environ.get("SPARK_SECRET_KEY"),
-        spark_llm_domain='lite',
-        streaming=False,
-    )
-    messages = [ChatMessage(
-        role="user",
-        content=content
-    )]
-    handler = ChunkPrintHandler()
-    a = spark.generate([messages], callbacks=[handler])
-    return a.generations[0][0].message.content
-
-
-def chat_doubao(content: str) -> str:
-    """与豆包AI聊天并获取响应"""
-    client = Ark(
-        # 此为默认路径，您可根据业务所在地域进行配置
-        base_url="https://ark.cn-beijing.volces.com/api/v3",
-        # 从环境变量中获取您的 API Key。此为默认方式，您可根据需要进行修改
-        api_key=os.environ.get("ARK_API_KEY"),
-    )
-
-    completion = client.chat.completions.create(
-        # 指定您创建的方舟推理接入点 ID，此处已帮您修改为您的推理接入点 ID
-        model="ep-20250329165324-l8vxt",
-        messages=[
-            {"role": "user", "content": f"{content}"},
-        ],
-        extra_headers={'x-is-encrypted': 'true'},
-    )
-    return completion.choices[0].message.content
-
-
-def chat_deepseek(content: str) -> str:
-    """与Deepseek AI聊天并获取响应"""
-    client = Ark(
-        # 此为默认路径，您可根据业务所在地域进行配置
-        base_url="https://ark.cn-beijing.volces.com/api/v3",
-        # 从环境变量中获取您的 API Key。此为默认方式，您可根据需要进行修改
-        api_key=os.environ.get("DS_API_KEY"),
-    )
-
-    completion = client.chat.completions.create(
-        # 指定您创建的方舟推理接入点 ID，此处已帮您修改为您的推理接入点 ID
-        model="ep-20250329165324-l8vxt",
-        messages=[
-            {"role": "user", "content": f"{content}"},
-        ],
-        extra_headers={'x-is-encrypted': 'true'},
-    )
-    return completion.choices[0].message.content
-
-
 def check_device(matched_devices: list) -> bool:
     if matched_devices is None:
         return False
@@ -570,8 +512,7 @@ def predict_next_devices(device, user_profile: UserProfile) -> list[str]:
     # 预测下一步可能需要的设备
     current_device = device[0] if isinstance(device, list) else device
     predicted_devices = user_profile.predict_next_devices(current_device)
-    if predicted_devices:
-        return predicted_devices
+    return predicted_devices if predicted_devices else ["暂无推荐设备"]
 
 
 def get_user_profile(user_id: int) -> UserProfile:
