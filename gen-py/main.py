@@ -277,26 +277,16 @@ def get_seasonal_context() -> Dict[str, str]:
 
 
 def recommend_devices(user: UserProfile, match_devices: List[Union[str, List[str]]]) -> list[Any] | None:
-    """使用TOPSIS综合推荐设备，同组设备只选评分最高的"""
+    """使用TOPSIS综合推荐设备，同组设备只选评分最高的，权重由熵权法动态确定"""
     # 1. 获取当前上下文
     time_dict = get_seasonal_context()
     season = time_dict["season"]
     weekday = time_dict["weekday"]
     time = time_dict["time"]
 
-    # 2. 定义评价指标和权重（与AHP相同，但TOPSIS权重需归一化）
-    CRITERIA_WEIGHTS = np.array([
-        0.3,  # region
-        0.25,  # family
-        0.2,  # lifestyle
-        0.15,  # time_related
-        0.1  # usage
-    ])
-    CRITERIA_WEIGHTS = CRITERIA_WEIGHTS / CRITERIA_WEIGHTS.sum()  # 归一化权重
-
-    # 3. 构建决策矩阵（每行是一个设备，每列是一个准则的得分）
+    # 2. 构建决策矩阵（每行是一个设备，每列是一个准则的得分）
     def get_device_scores(device: str) -> list:
-        """计算设备在各准则下的得分（与AHP逻辑一致）"""
+        """计算设备在各准则下的得分"""
         # (1) 地域特征：设备是否适应当前地区和季节？
         scores = [1.0 if device in REGION_DEVICE_MAP[user.region].get(season, []) else 0.0]
         # (2) 家庭特征：设备是否符合家庭情况（小孩/老人/宠物）？
@@ -326,7 +316,7 @@ def recommend_devices(user: UserProfile, match_devices: List[Union[str, List[str
         scores.append(usage_score)
         return scores
 
-    # 4. 处理设备组（每组只保留最高分设备）
+    # 3. 处理设备组（每组只保留最高分设备）
     candidate_devices = []
     processed_groups = set()
     for group in match_devices:
@@ -341,23 +331,71 @@ def recommend_devices(user: UserProfile, match_devices: List[Union[str, List[str
     if not candidate_devices:
         return None
 
-    # 5. 构建决策矩阵并归一化（向量归一化，TOPSIS标准方法）
+    # 4. 构建决策矩阵
     decision_matrix = np.array([get_device_scores(device) for device in candidate_devices])
 
-    # 处理可能全为零的列
+    # 使用熵权法计算权重
+    def entropy_weight(matrix):
+        """使用熵权法计算各指标的权重，修复数值稳定性问题"""
+        # 处理全零列
+        col_sums = matrix.sum(axis=0)
+        valid_cols = col_sums > 0
+
+        # 创建结果矩阵
+        weights = np.zeros(matrix.shape[1])
+
+        # 只处理非全零列
+        if np.any(valid_cols):
+            valid_matrix = matrix[:, valid_cols]
+
+            # 确保矩阵中没有零值（添加极小值避免对数计算问题）
+            epsilon = 1e-10
+            valid_matrix = np.maximum(valid_matrix, epsilon)
+
+            # 归一化处理（概率分布）
+            p = valid_matrix / valid_matrix.sum(axis=0)
+
+            # 安全计算对数：log(0) 被替换为 log(epsilon)
+            log_p = np.log(p)
+
+            # 计算熵值
+            n = valid_matrix.shape[0]
+            if n <= 1:
+                # 当只有1个样本时，熵值为0（无法区分）
+                entropy = np.zeros(valid_matrix.shape[1])
+            else:
+                entropy = -np.sum(p * log_p, axis=0) / np.log(n)
+
+            # 计算差异系数
+            d = 1 - entropy
+
+            # 处理全零差异系数（所有指标熵值相同的极端情况）
+            if np.all(d == 0):
+                valid_weights = np.ones_like(d) / len(d)
+            else:
+                valid_weights = d / d.sum()
+
+            # 将有效权重放回对应位置
+            weights[valid_cols] = valid_weights
+
+        return weights
+
+    # 5. 使用熵权法计算权重
+    CRITERIA_WEIGHTS = entropy_weight(decision_matrix)
+
+    # 6. 归一化决策矩阵（向量归一化）
     column_norms = np.linalg.norm(decision_matrix, axis=0, keepdims=True)
-    # 将零范数列替换为1，避免除以零
-    column_norms[column_norms == 0] = 1
+    column_norms[column_norms == 0] = 1  # 避免除以零
     norm_matrix = decision_matrix / column_norms
 
-    # 6. 加权归一化矩阵
+    # 7. 加权归一化矩阵
     weighted_matrix = norm_matrix * CRITERIA_WEIGHTS
 
-    # 7. 确定理想解和负理想解（所有指标均为正向指标）
+    # 8. 确定理想解和负理想解
     ideal_best = weighted_matrix.max(axis=0)
     ideal_worst = weighted_matrix.min(axis=0)
 
-    # 8. 计算距离和相对接近度
+    # 9. 计算距离和相对接近度
     dist_best = np.linalg.norm(weighted_matrix - ideal_best, axis=1)
     dist_worst = np.linalg.norm(weighted_matrix - ideal_worst, axis=1)
 
@@ -367,12 +405,11 @@ def recommend_devices(user: UserProfile, match_devices: List[Union[str, List[str
                              dist_worst / (dist_best + dist_worst),
                              0)  # 如果分母为零，则设为0
 
-    # 9. 按接近度排序设备
+    # 10. 按接近度排序设备
     ranked_devices = [
         device for _, device in sorted(zip(closeness, candidate_devices), reverse=True)
     ]
     return ranked_devices
-
 
 def match_keyword(text: str) -> Optional[list[str]]:
     """返回匹配到的设备列表，未匹配返回None"""
