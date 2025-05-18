@@ -37,11 +37,10 @@ class DialogHistory:
         """实时场景检测（单条触发机制）"""
         if self.current_scene != "默认场景":
             self.scene_persist_counter -= 1  # 每轮无匹配递减
+            # 清空场景的条件（计数器归零或没有设备匹配）
+            if self.scene_persist_counter <= 0:
+                self.current_scene = "默认场景"
             return self.current_scene
-
-        # 清空场景的条件（计数器归零或没有设备匹配）
-        if self.scene_persist_counter <= 0:
-            self.current_scene = "默认场景"
 
         # 实时关键词检测
         detected_scene = None
@@ -102,7 +101,7 @@ class UserProfile:
 
     def _get_markov_prediction(self, current_device: str, top_n: int = 3) -> List[str]:
         """
-        马尔可夫链核心预测逻辑
+        结合熵权法的马尔可夫链预测逻辑
         :param current_device: 当前设备名称
         :param top_n: 返回前N个预测结果
         :return: 预测的设备列表（可能为空）
@@ -110,15 +109,48 @@ class UserProfile:
         if not current_device or current_device not in self.markov_model:
             return []
 
-        # 获取转移概率并排序
+        # 获取所有可能的下一设备及其转移次数
         next_devices = self.markov_model[current_device]
+
+        # 计算每个设备的使用频率熵权
+        device_names = list(next_devices.keys())
+        usage_counts = np.array([self.device_usage.get(dev, 1) for dev in device_names])
+
+        # 计算熵权
+        def entropy_weight(usage):
+            """计算单个设备的使用频率熵权"""
+            if len(usage) == 0:
+                return 0
+
+            # 归一化使用频率
+            p = usage / usage.sum()
+
+            # 避免对数计算中的零值
+            p = np.maximum(p, 1e-10)
+
+            # 计算熵值
+            entropy = -np.sum(p * np.log(p))
+
+            # 计算差异系数（信息效用值）
+            d = 1 - entropy
+
+            # 计算权重（归一化）
+            return d
+
+        # 为每个设备计算熵权
+        weights = np.array([entropy_weight(np.array([count])) for count in usage_counts])
+
+        # 结合转移次数和熵权计算综合得分
+        scores = {dev: next_devices[dev] * weights[i] for i, dev in enumerate(device_names)}
+
+        # 按得分排序
         sorted_devices = sorted(
-            next_devices.items(),
-            key=lambda x: -x[1]  # 按出现频率降序
+            scores.items(),
+            key=lambda x: -x[1]  # 按综合得分降序
         )
 
         # 返回top_n个设备（排除当前设备）
-        return [dev for dev, count in sorted_devices if dev != current_device][:top_n]
+        return [dev for dev, _ in sorted_devices if dev != current_device][:top_n]
 
     def predict_next_devices(self, current_device: str = None) -> List[str]:
         """改进后的预测方法（优先级：场景 > 马尔可夫 > 近期模式 > 通用推荐）"""
@@ -134,6 +166,7 @@ class UserProfile:
 
         # 2. 马尔可夫链预测（当有当前设备时）
         if not predictions and current_device:
+            # 调用结合熵权法的马尔可夫预测
             markov_pred = self._get_markov_prediction(current_device, top_n=2)
             predictions.extend(markov_pred)
 
@@ -171,6 +204,9 @@ class UserProfile:
 
         if history.current_scene != "默认场景":
             scene_key = f"scene_{history.current_scene}"
+            # 确保场景键存在于字典中
+            if scene_key not in self.device_sequences:
+                self.device_sequences[scene_key] = []
             if len(self.device_sequences[scene_key]) >= 3:
                 self.device_sequences[scene_key].pop(0)
             self.device_sequences[scene_key].append(device_name)
@@ -277,7 +313,7 @@ def get_seasonal_context() -> Dict[str, str]:
 
 
 def recommend_devices(user: UserProfile, match_devices: List[Union[str, List[str]]]) -> list[Any] | None:
-    """使用TOPSIS综合推荐设备，同组设备只选评分最高的，权重由熵权法动态确定"""
+    """使用TOPSIS综合推荐设备，同组设备只选评分最高的，权重由固定值确定"""
     # 1. 获取当前上下文
     time_dict = get_seasonal_context()
     season = time_dict["season"]
@@ -334,54 +370,8 @@ def recommend_devices(user: UserProfile, match_devices: List[Union[str, List[str
     # 4. 构建决策矩阵
     decision_matrix = np.array([get_device_scores(device) for device in candidate_devices])
 
-    # 使用熵权法计算权重
-    def entropy_weight(matrix):
-        """使用熵权法计算各指标的权重，修复数值稳定性问题"""
-        # 处理全零列
-        col_sums = matrix.sum(axis=0)
-        valid_cols = col_sums > 0
-
-        # 创建结果矩阵
-        weights = np.zeros(matrix.shape[1])
-
-        # 只处理非全零列
-        if np.any(valid_cols):
-            valid_matrix = matrix[:, valid_cols]
-
-            # 确保矩阵中没有零值（添加极小值避免对数计算问题）
-            epsilon = 1e-10
-            valid_matrix = np.maximum(valid_matrix, epsilon)
-
-            # 归一化处理（概率分布）
-            p = valid_matrix / valid_matrix.sum(axis=0)
-
-            # 安全计算对数：log(0) 被替换为 log(epsilon)
-            log_p = np.log(p)
-
-            # 计算熵值
-            n = valid_matrix.shape[0]
-            if n <= 1:
-                # 当只有1个样本时，熵值为0（无法区分）
-                entropy = np.zeros(valid_matrix.shape[1])
-            else:
-                entropy = -np.sum(p * log_p, axis=0) / np.log(n)
-
-            # 计算差异系数
-            d = 1 - entropy
-
-            # 处理全零差异系数（所有指标熵值相同的极端情况）
-            if np.all(d == 0):
-                valid_weights = np.ones_like(d) / len(d)
-            else:
-                valid_weights = d / d.sum()
-
-            # 将有效权重放回对应位置
-            weights[valid_cols] = valid_weights
-
-        return weights
-
-    # 5. 使用熵权法计算权重
-    CRITERIA_WEIGHTS = entropy_weight(decision_matrix)
+    # 5. 使用固定权重
+    CRITERIA_WEIGHTS = np.array([0.25, 0.20, 0.15, 0.15, 0.25])  # 固定权重分配
 
     # 6. 归一化决策矩阵（向量归一化）
     column_norms = np.linalg.norm(decision_matrix, axis=0, keepdims=True)
@@ -410,6 +400,7 @@ def recommend_devices(user: UserProfile, match_devices: List[Union[str, List[str
         device for _, device in sorted(zip(closeness, candidate_devices), reverse=True)
     ]
     return ranked_devices
+
 
 def match_keyword(text: str) -> Optional[list[str]]:
     """返回匹配到的设备列表，未匹配返回None"""

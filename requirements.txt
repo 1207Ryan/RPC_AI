@@ -450,3 +450,6 @@ zipp @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/zipp_170749
 zope.event==5.0
 zope.interface @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/zope.interface_1699497164709/work
 zstandard @ file:///C:/b/abs_e46tf0_91g/croot/zstandard_1714678303615/work
+
+numpy~=2.1.1
+requests~=2.32.3
