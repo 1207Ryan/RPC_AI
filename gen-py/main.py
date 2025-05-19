@@ -1,11 +1,11 @@
 import time
 from datetime import datetime
-from typing import Dict, List, Optional, Union, Any
+from typing import Dict, List, Optional, Union, Any, Tuple
 import numpy as np
 import requests
-from prompts import *
 from voice import VoiceRecognition
 from voicefile import *
+from device import *
 import os
 import json
 from collections import defaultdict
@@ -17,6 +17,21 @@ class DialogHistory:
         self.max_length = max_length
         self.current_scene: Optional[str] = "默认场景"  # 明确标注可为None
         self.scene_persist_counter = 0  # 场景持续计数器
+        # 初始化时构建所有设备名称列表
+        self.all_device_names = [appliance.name for appliance in appliances]
+        # 预构建设备-场景映射
+        self.device_scene_map = {
+            appliance.name: appliance.scene for appliance in appliances
+        }
+
+        # 预构建场景-设备映射
+        self.scene_device_map = {}
+        for appliance in appliances:
+            # 如果场景不在映射中，创建空列表
+            if appliance.scene not in self.scene_device_map:
+                self.scene_device_map[appliance.scene] = []
+            # 将设备添加到对应场景的列表中
+            self.scene_device_map[appliance.scene].append(appliance.name)
 
     def add(self, user_input: str, response: list) -> None:
         self.history.append({
@@ -33,28 +48,18 @@ class DialogHistory:
             for item in self.history
         )
 
+    def set_scene(self, device: str | list[str]):
+        self.current_scene = self.device_scene_map[device]
+        self.scene_persist_counter = self.max_length
+
     def detect_scene(self, user_input: str) -> Optional[str]:
-        """实时场景检测（单条触发机制）"""
+        """实时场景检测（基于家电场景）"""
         if self.current_scene != "默认场景":
-            self.scene_persist_counter -= 1  # 每轮无匹配递减
-            # 清空场景的条件（计数器归零或没有设备匹配）
+            self.scene_persist_counter -= 1
             if self.scene_persist_counter <= 0:
                 self.current_scene = "默认场景"
             return self.current_scene
-
-        # 实时关键词检测
-        detected_scene = None
-        for scene, keywords in SCENE_KEYWORDS.items():
-            if any(keyword in user_input for keyword in keywords):
-                detected_scene = scene
-                break
-
-        # 更新场景状态
-        if detected_scene:
-            self.current_scene = detected_scene
-            self.scene_persist_counter = self.max_length  # 设置几轮对话的持续期
-
-        return self.current_scene
+        return "默认场景"
 
     def force_exit_scene(self):
         self.current_scene = "默认场景"
@@ -323,33 +328,46 @@ def recommend_devices(user: UserProfile, match_devices: List[Union[str, List[str
     # 2. 构建决策矩阵（每行是一个设备，每列是一个准则的得分）
     def get_device_scores(device: str) -> list:
         """计算设备在各准则下的得分"""
-        # (1) 地域特征：设备是否适应当前地区和季节？
-        scores = [1.0 if device in REGION_DEVICE_MAP[user.region].get(season, []) else 0.0]
-        # (2) 家庭特征：设备是否符合家庭情况（小孩/老人/宠物）？
-        matched_features = sum(
-            1 for feature, devices in FAMILY_FEATURE_MAP.items()
-            if getattr(user, feature) and device in devices
-        )
-        family_features = len(FAMILY_FEATURE_MAP)
-        scores.append(matched_features / family_features if family_features > 0 else 0.0)
-        # (3) 生活习惯：设备是否符合用户的工作和烹饪习惯？
-        lifestyle_score = 0.0
-        if device in LIFESTYLE_FEATURES_MAP["cooking"][user.cooking_habits]:
-            lifestyle_score += 0.6
-        if user.work_schedule != "regular" and device in LIFESTYLE_FEATURES_MAP["work_schedule"][user.work_schedule]:
-            lifestyle_score += 0.4
-        scores.append(lifestyle_score)
-        # (4) 时间相关：设备是否适合当前季节和时间段？
-        time_score = 0.0
-        if device in SEASON_DEVICE_MAP[season]:
-            time_score += 0.5
-        if device in TIME_DEVICE_MAP[weekday][time]:
-            time_score += 0.5
-        scores.append(time_score)
-        # (5) 使用频率：设备是否经常被使用？
-        max_usage = max(user.device_usage.values()) if user.device_usage else 1
-        usage_score = user.device_usage.get(device, 0) / max_usage if max_usage > 0 else 0
-        scores.append(usage_score)
+        # Find the appliance
+        appliance = next((a for a in appliances if a.name == device), None)
+        if not appliance:
+            return [0.0] * 5  # Default scores if appliance not found
+
+        # 安全获取 lifestyle_features，默认为空字典
+        lifestyle_features = appliance.lifestyle_features or {}
+
+        # 生活习惯评分
+        cooking_match = 0.6 if user.cooking_habits in lifestyle_features.get("cooking", []) else 0.0
+        work_schedule_match = 0.4 if user.work_schedule in lifestyle_features.get("work_schedule", []) else 0.0
+        lifestyle_score = cooking_match + work_schedule_match
+
+        # 时间相关评分
+        season_match = 0.5 if season in appliance.season_suitability else 0.0
+        time_match = 0.5 if time in appliance.time_suitability.get(weekday, []) else 0.0
+        time_score = season_match + time_match
+
+        # 使用频率评分，避免除零错误
+        usage_scores = list(user.device_usage.values())
+        max_usage = max(usage_scores) if usage_scores else 1.0  # 避免除零
+
+        scores = [
+            # (1) 地域特征
+            1.0 if user.region in appliance.region_suitability else 0.0,
+
+            # (2) 家庭特征
+            sum(1 for feature in appliance.family_features if getattr(user, feature, False)) / len(
+                appliance.family_features) if appliance.family_features else 0.0,
+
+            # (3) 生活习惯
+            lifestyle_score,
+
+            # (4) 时间相关
+            time_score,
+
+            # (5) 使用频率
+            user.device_usage.get(device, 0) / max_usage
+        ]
+
         return scores
 
     # 3. 处理设备组（每组只保留最高分设备）
@@ -405,14 +423,11 @@ def recommend_devices(user: UserProfile, match_devices: List[Union[str, List[str
 def match_keyword(text: str) -> Optional[list[str]]:
     """返回匹配到的设备列表，未匹配返回None"""
     text = text.lower()
-    result = list()
-    for keyword, devices in KEYWORD_MAP.items():
-        if keyword in text:
-            if len(devices) == 1:
-                result.append(devices[0])
-            else:
-                result.append(devices)
-    return result
+    result = []
+    for appliance in appliances:
+        if any(keyword in text for keyword in appliance.keywords):
+            result.append(appliance.name)
+    return result if result else None
 
 
 def get_access_token() -> str:
@@ -453,18 +468,16 @@ def check_device(matched_devices: list) -> bool:
         return False
 
 
-def get_device(user_input: str, user_profile: UserProfile) -> list[str] | str:
+def get_device(user_input: str, user_profile: UserProfile) -> tuple[list[str | Any], str | None] | list[Any] | None | \
+                                                              list[str] | list[str | Any]:
     # 实时场景检测
     current_scene = history.detect_scene(user_input)
-    # print(current_scene)
-    if current_scene:
-        print("处于" + current_scene + "（输入结束场景来停止）")
     # 先尝试关键词匹配
     matched_devices = match_keyword(user_input)
     # print(matched_devices)
     # 场景敏感的设备过滤
     if matched_devices and current_scene != "默认场景":
-        current_scene_devices = SCENE_DEVICE_MAP.get(current_scene, [])
+        current_scene_devices = history.scene_device_map[current_scene]
         filtered_devices = []
         for device in matched_devices:
             if isinstance(device, str):
@@ -476,32 +489,36 @@ def get_device(user_input: str, user_profile: UserProfile) -> list[str] | str:
                         filtered_devices.append(dev)
         matched_devices = filtered_devices
         if matched_devices:
-            return matched_devices
+            return matched_devices, current_scene
         if not matched_devices:  # 关键修改：无匹配立即退出场景
+            current_scene = "默认场景"
             history.force_exit_scene()
 
     # print(matched_devices)
     if not current_scene or current_scene == "默认场景":
         matched_devices = match_keyword(user_input)
-        # print(matched_devices)
-        # 根据时间和用户画像选择最匹配的电器
-        matched_devices = recommend_devices(user_profile, matched_devices)
-        # print(matched_devices)
-        if check_device(matched_devices):
-            return matched_devices
+        if matched_devices:
+            # print(matched_devices)
+            # 根据时间和用户画像选择最匹配的电器
+            matched_devices = recommend_devices(user_profile, matched_devices)
+            # print(matched_devices)
+            if check_device(matched_devices):
+                history.set_scene(matched_devices[0])
+                return matched_devices, history.current_scene
 
-        # 如果经过所有匹配流程还是没有设备
+    # 如果经过所有匹配流程还是没有设备
     # if not matched_devices:
     #     return ["未知设备"]
 
     # 无匹配则走AI流程
     prompt = PROMPT.format(
         user_input=user_input,
+        device_names=", ".join([device for device in history.all_device_names]),
     )
 
     response = chat_qianfan(prompt)
     if "未知设备" in response:
-        return ["未知设备"]
+        return ["未知设备"], "默认场景"
 
     if isinstance(response, str):
         response = json.loads(response)
@@ -512,7 +529,7 @@ def get_device(user_input: str, user_profile: UserProfile) -> list[str] | str:
         elif isinstance(device, list):
             for dev in device:
                 filtered_devices.append(dev)
-    return filtered_devices
+    return filtered_devices, current_scene
 
 
 def process_input(user_input: str, user_profile: UserProfile):
@@ -527,7 +544,10 @@ def process_input(user_input: str, user_profile: UserProfile):
         print("场景已结束")
         return "场景已结束"
 
-    device = get_device(user_input, user_profile)
+    device, scene = get_device(user_input, user_profile)
+    if scene:
+        print("处于" + scene + "（输入结束场景来停止）")
+
     if "未知设备" in device:
         return device
 
